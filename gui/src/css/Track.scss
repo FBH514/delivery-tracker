@@ -1,0 +1,40 @@
+#display-data {
+  padding: 2rem;
+}
+
+#display-data-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+#date {
+  font-weight: 700;
+  color: var(--yellow);
+  font-size: 3rem;
+}
+
+.data-field {
+  border-radius: 5px;
+  background: linear-gradient(70deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.1));
+  padding: 1rem;
+}
+
+#tracking {
+  font-weight: 700;
+  color: var(--yellow);
+}
+
+#status {
+  font-weight: 700;
+}
+
+#location {
+  font-weight: 700;
+  color: var(--yellow);
+}
+
+#last-seen {
+  font-weight: 700;
+  color: var(--yellow);
+}
