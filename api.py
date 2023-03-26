@@ -47,5 +47,6 @@ def get_data(response: Response) -> dict:
         "detail": data[3],
         "location": data[4],
         "last_seen": data[5],
-        "date": data[6]
+        "date": data[6],
+        "usps_link": "https://tools.usps.com/go/TrackConfirmAction.action?tLabels=" + data[1]
     }

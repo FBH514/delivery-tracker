@@ -10,14 +10,25 @@
 
 #date {
   font-weight: 700;
-  color: var(--yellow);
   font-size: 3rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+
+  #date-h3 {
+    color: var(--yellow);
+  }
 }
 
 .data-field {
   border-radius: 5px;
   background: linear-gradient(70deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.1));
   padding: 1rem;
+
+  ::selection {
+    background: var(--light-blue);
+    color: var(--white);
+  }
 }
 
 #tracking {
@@ -37,4 +48,33 @@
 #last-seen {
   font-weight: 700;
   color: var(--yellow);
+}
+
+#usps-link {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 1rem;
+}
+
+.checkmark-active {
+  animation: appear 1s ease-in-out;
+  cursor: default;
+
+  @keyframes appear {
+    0% {
+      opacity: 0;
+    }
+    100% {
+      opacity: 1;
+    }
+  }
+}
+
+#copy {
+  transition: all 1s ease-in-out;
+}
+
+#copy:hover {
+  cursor: pointer;
 }
