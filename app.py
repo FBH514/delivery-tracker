@@ -119,7 +119,7 @@ class Database:
         :param name: str
         :param sql: str
         """
-        if not name.endswith(".db"):
+        if not name.endswith(self.ext):
             raise ValueError("{} must end with {}".format(name, self.ext))
         self.name = name
         self.conn = sqlite3.connect(name)
