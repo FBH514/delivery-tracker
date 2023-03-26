@@ -1,5 +1,8 @@
+import datetime
 import os
-import string
+import re
+import sqlite3
+import asyncio
 
 from dotenv import load_dotenv
 import requests
@@ -14,12 +17,25 @@ class Fetch:
         Constructor for the Fetch Object.
         """
         load_dotenv()
+        self._tracking_number = os.getenv("TRACKING_NUMBER")
         self.BASE_URL = "https://tools.usps.com/go/TrackConfirmAction.action?tLabels="
-        self.response = self.get(os.getenv("TRACKING_NUMBER"))
+        self.response = self.get(self._tracking_number)
         self.soup = BeautifulSoup(self.response.text, "html.parser")
 
-    def __str__(self):
-        pass
+    def __str__(self) -> str:
+        """
+        String representation of the Fetch object.
+        :return: str
+        """
+        return self.BASE_URL
+
+    @property
+    def tracking_number(self) -> str:
+        """
+        Returns the tracking number.
+        :return: str
+        """
+        return self._tracking_number
 
     def get(self, tracking_number: str) -> Response:
         """
@@ -58,41 +74,151 @@ class Fetch:
         location = "tb-location"
         return self.soup.find("p", {"class": location}).text.strip()
 
-    def parse_date(self) -> str:
+    def parse_last_seen(self) -> str:
         """
-        Parses the date from the BeautifulSoup object.
+        Parses the last seen date from the BeautifulSoup object.
         :return: str
         """
         date = "tb-date"
-        return self.soup.find("p", {"class": date}).text.strip()
+        date = self.soup.find("p", {"class": date}).text.strip()
+        date = re.findall(r'\S+', date)
+        return " ".join(date)
+
+    def data(self) -> dict:
+        """
+        Returns the data from the Fetch object.
+        :return: dict
+        """
+        return {
+            "tracking_number": self.tracking_number,
+            "status": self.parse_status(),
+            "detail": self.parse_detail(),
+            "location": self.parse_location(),
+            "last_seen": self.parse_last_seen()
+        }
 
 
 class Database:
 
-    def __init__(self):
-        pass
+    instance = None
+    ext = ".db"
 
-    def __str__(self):
-        pass
+    def __new__(cls, *args, **kwargs) -> 'Database':
+        """
+        Singleton pattern for the Database object.
+        :param args: list
+        :param kwargs: dict
+        """
+        if not cls.instance:
+            cls.instance = super().__new__(cls)
+        return cls.instance
 
-    def insert(self):
-        pass
+    def __init__(self, name: str, sql: str) -> None:
+        """
+        Constructor for the Database object.
+        :param name: str
+        :param sql: str
+        """
+        if not name.endswith(".db"):
+            raise ValueError("{} must end with {}".format(name, self.ext))
+        self.name = name
+        self.conn = sqlite3.connect(name)
+        self.cursor  = self.conn.cursor()
+        self.cursor.execute(sql)
+        self.conn.commit()
 
-    def select(self):
-        pass
+    def __str__(self) -> str:
+        """
+        String representation of the Database object.
+        :return: str
+        """
+        return self.name
 
-    def update(self):
-        pass
+    def insert(self, sql: str, data: dict) -> None:
+        """
+        Inserts into the database.
+        :param sql: str
+        :param data: dict
+        :return: None
+        """
+        with self.conn:
+            self.cursor.execute(sql, data)
+        self.conn.commit()
 
-    def delete(self):
-        pass
+    def select(self, sql: str) -> list:
+        """
+        Selects from the database.
+        :param sql: str
+        :return: list
+        """
+        with self.conn:
+            self.cursor.execute(sql)
+        return self.cursor.fetchall()
+
+    def update(self, sql: str, data: dict) -> None:
+        """
+        Updates the database.
+        :param sql: str
+        :param data: dict
+        :return: None
+        """
+        with self.conn:
+            self.cursor.execute(sql, data)
+        self.conn.commit()
+
+    def delete(self, sql: str, data: dict) -> None:
+        """
+        Deletes from the database.
+        :param sql: str
+        :param data: dict
+        :return:
+        """
+        with self.conn:
+            self.cursor.execute(sql, data)
+        self.conn.commit()
 
 
-if __name__ == '__main__':
+class App:
 
-    load_dotenv()
-    fetch = Fetch()
-    print(fetch.parse_status())
-    print(fetch.parse_detail())
-    print(fetch.parse_location())
-    print(fetch.parse_date())
+    def __init__(self) -> None:
+        """
+        Constructor for the App object.
+        """
+        load_dotenv()
+        self.sleep = 15 * 60
+        self.seperator = "—"
+        self.database = Database(os.getenv("DB_NAME"), os.getenv("CREATE_TABLE"))
+
+    def __str__(self) -> str:
+        """
+        String representation of the App object.
+        :return: str
+        """
+        return "App fetches data from USPS."
+
+    def save_data(self, data: dict) -> None:
+        """
+        Saves the data to the database.
+        :param data: dict
+        :return: None
+        """
+        data.update({"date": datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M")})
+        self.database.insert(os.getenv("INSERT_STATUS"), data)
+
+    async def run(self) -> None:
+        """
+        Runs the app.
+        :return: None
+        """
+        while True:
+            fetch = Fetch()
+            data = fetch.data()
+            print(f"Last Status for Tracking Number {data['tracking_number']} —> {data['status']}")
+            print(f"{data['detail']}: {data['location']}")
+            print(f"Last Seen on {data['last_seen']}")
+            message = f"Saving results.\nFetching new data in {int(self.sleep / 60)} minutes."
+            self.save_data(data)
+            print(self.seperator * len(message))
+            print(message)
+            print()
+            await asyncio.sleep(self.sleep)
