@@ -1,11 +1,16 @@
 #display-data {
   padding: 2rem;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 #display-data-wrapper {
   display: flex;
   flex-direction: column;
   gap: 2rem;
+  width: 70%;
 }
 
 #date {
@@ -17,6 +22,9 @@
 }
 #date #date-h3 {
   color: var(--yellow);
+}
+#date #time-h3 {
+  font-weight: 300;
 }
 
 .data-field {

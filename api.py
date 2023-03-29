@@ -43,7 +43,7 @@ def get_data(response: Response) -> dict:
     data = db.select(os.getenv("SELECT_ALL"))[-1]
     return {
         "tracking": data[1],
-        "content": data[2],
+        "content": data[2].split(".")[0],
         "status": data[3],
         "detail": data[4],
         "location": data[5],

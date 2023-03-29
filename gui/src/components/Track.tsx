@@ -66,11 +66,11 @@ function Track() {
                     </h3>
                 </div>
                 <div className="data-field">
-                    <h3>Last Seen on <span id={"last-seen"}>{data['last_seen']}</span></h3>
+                    <h3>Seen on <span id={"last-seen"}>{data['last_seen']}</span></h3>
                 </div>
-                <div className="data-field">
-                    <h3>{data['content']}</h3>
-                </div>
+                {/*<div className="data-field">*/}
+                {/*    <h3>{data['content']}</h3>*/}
+                {/*</div>*/}
                 <div id={"usps-link"}>
                     <h3>Tracking Link</h3>
                     <img
