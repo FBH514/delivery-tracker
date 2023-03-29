@@ -20,6 +20,11 @@
   align-items: center;
   gap: 1rem;
 
+  ::selection {
+    background: var(--light-blue);
+    color: var(--white);
+  }
+
   #date-h3 {
     color: var(--yellow);
   }
@@ -64,6 +69,11 @@
   align-items: center;
   justify-content: flex-end;
   gap: 1rem;
+
+  ::selection {
+    background: var(--light-blue);
+    color: var(--white);
+  }
 }
 
 .checkmark-active {
