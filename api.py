@@ -43,10 +43,11 @@ def get_data(response: Response) -> dict:
     data = db.select(os.getenv("SELECT_ALL"))[-1]
     return {
         "tracking": data[1],
-        "status": data[2],
-        "detail": data[3],
-        "location": data[4],
-        "last_seen": data[5],
-        "date": data[6],
+        "content": data[2],
+        "status": data[3],
+        "detail": data[4],
+        "location": data[5],
+        "last_seen": data[6],
+        "date": data[7],
         "usps_link": "https://tools.usps.com/go/TrackConfirmAction.action?tLabels=" + data[1]
     }

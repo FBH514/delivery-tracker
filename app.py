@@ -50,6 +50,14 @@ class Fetch:
             raise Exception("Error: " + str(response.status_code))
         return response
 
+    def parse_content(self) -> str:
+        """
+        Parses the content from the BeautifulSoup object.
+        :return: str
+        """
+        content = "banner-content"
+        return self.soup.find("p", {"class": content}).text.strip()
+
     def parse_status(self) -> str:
         """
         Parses the status from the BeautifulSoup object.
@@ -91,6 +99,7 @@ class Fetch:
         """
         return {
             "tracking_number": self.tracking_number,
+            "content": self.parse_content(),
             "status": self.parse_status(),
             "detail": self.parse_detail(),
             "location": self.parse_location(),
@@ -214,6 +223,7 @@ class App:
             fetch = Fetch()
             data = fetch.data()
             print(f"Last Status for Tracking Number {data['tracking_number']} —> {data['status']}")
+            print(f"{data['content']}")
             print(f"{data['detail']}: {data['location']}")
             print(f"Last Seen on {data['last_seen']}")
             message = f"Saving results.\nFetching new data in {int(self.sleep / 60)} minutes."
