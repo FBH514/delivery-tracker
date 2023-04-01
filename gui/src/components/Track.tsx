@@ -3,16 +3,16 @@ import {useState} from "react";
 
 function Track() {
 
-    const endpoint = "http://localhost:8000/usps-tracking/v1/data"
+    const endpoint = "http://localhost:8001/usps-tracking/v1/data"
 
-    async function FetchData() {
+    async function fetchData() {
         const response = await fetch(endpoint);
         return await response.json();
     }
 
     const [date, setDate] = useState("🤔🧐");
     const [time, setTime] = useState("What time is it?");
-    const {isLoading, data} = useQuery('data', FetchData);
+    const {isLoading, data} = useQuery('data', fetchData);
 
     if (isLoading) {
         return (
@@ -26,7 +26,7 @@ function Track() {
         );
     }
 
-    function GetDate() {
+    function getDate() {
         const date = new Date();
         const year = date.getFullYear();
         const month = date.getMonth() + 1 < 10 ? `0${date.getMonth() + 1}` : date.getMonth() + 1;
@@ -38,12 +38,12 @@ function Track() {
     }
 
     setInterval(() => {
-        const updatedDate = GetDate();
+        const updatedDate = getDate();
         setDate(updatedDate["date"]);
         setTime(updatedDate["time"]);
     }, 1000);
 
-    const HandleClick = () => {
+    const handleClick = () => {
       navigator.clipboard.writeText(data["usps_link"]);
       const img = document.getElementById("copy") as HTMLImageElement;
       img.src = "https://img.icons8.com/material/32/fca311/checkmark--v1.png";
@@ -77,7 +77,7 @@ function Track() {
                       src="https://img.icons8.com/small/32/ffffff/copy.png"
                       alt={"click to copy"}
                       id={"copy"}
-                      onClick={HandleClick}
+                      onClick={handleClick}
                     />
                 </div>
             </div>

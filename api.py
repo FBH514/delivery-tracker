@@ -17,7 +17,7 @@ app.add_middleware(
 )
 
 load_dotenv()
-days = 30
+hours = 1
 
 def set_headers(response: Response) -> None:
     """
@@ -25,8 +25,8 @@ def set_headers(response: Response) -> None:
     :param response: Response
     :return: None
     """
-    response.headers['Cache-Control'] = "public, max-age=86400"
-    response.headers['Expires'] = (datetime.datetime.now() + datetime.timedelta(days=days)).strftime("%a, %d %b %Y %H:%M:%S GMT")
+    response.headers['Cache-Control'] = "public, max-age=3600"
+    response.headers['Expires'] = (datetime.datetime.now() + datetime.timedelta(hours=1)).strftime("%a, %d %b %Y %H:%M:%S GMT")
 
 version = "v1"
 project = "usps-tracking"
