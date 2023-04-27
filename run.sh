@@ -1,6 +1,6 @@
 #!/bin/zsh
 
-python3 main.py &
+python3 main.py usps &
 uvicorn api:app --reload --port 8001 &
 cd gui/src || exit
 npm run start

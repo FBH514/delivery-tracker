@@ -8,9 +8,56 @@ from dotenv import load_dotenv
 import requests
 from bs4 import BeautifulSoup
 from requests import Response
+from abc import ABC, abstractmethod
 
 
-class Fetch:
+class FetchStrategy(ABC):
+    """Defines the FetchStrategy interface."""
+
+    @abstractmethod
+    def __init__(self) -> None:
+        pass
+
+    @abstractmethod
+    def __str__(self) -> str:
+        pass
+
+    @property
+    @abstractmethod
+    def tracking_number(self) -> str:
+        pass
+
+    @abstractmethod
+    def get(self, tracking_number: str) -> Response:
+        pass
+
+    @abstractmethod
+    def parse_content(self) -> str:
+        pass
+
+    @abstractmethod
+    def parse_status(self) -> str:
+        pass
+
+    @abstractmethod
+    def parse_detail(self) -> str:
+        pass
+
+    @abstractmethod
+    def parse_location(self) -> str:
+        pass
+
+    @abstractmethod
+    def parse_last_seen(self) -> str:
+        pass
+
+    @abstractmethod
+    def data(self) -> dict:
+        pass
+
+
+class USPS(FetchStrategy):
+    """Defines the USPS Object, implements FetchStrategy."""
 
     def __init__(self) -> None:
         """
@@ -107,8 +154,83 @@ class Fetch:
         }
 
 
-class Database:
+class Fetch:
+    """Defines the Fetch context object."""
 
+    def __init__(self, strategy: FetchStrategy) -> None:
+        """
+        Constructor for the Fetch object.
+        :param strategy: FetchStrategy
+        """
+        self.strategy = strategy
+
+    def __str__(self) -> str:
+        """
+        String representation of the Fetch object.
+        :return: str
+        """
+        pass
+
+    def tracking_number(self) -> str:
+        """
+        Returns the tracking number.
+        :return: str
+        """
+        return self.strategy.tracking_number
+
+    def get(self, tracking_number: str) -> Response:
+        """
+        Makes a GET request.
+        :param tracking_number: str
+        :return: Response
+        """
+        return self.strategy.get(tracking_number)
+
+    def parse_content(self) -> str:
+        """
+        Parses the content from the BeautifulSoup object.
+        :return: str
+        """
+        return self.strategy.parse_content()
+
+    def parse_status(self) -> str:
+        """
+        Parses the status from the BeautifulSoup object.
+        :return: str
+        """
+        return self.strategy.parse_status()
+
+    def parse_detail(self) -> str:
+        """
+        Parses the detail from the BeautifulSoup object.
+        :return: str
+        """
+        return self.strategy.parse_detail()
+
+    def parse_location(self) -> str:
+        """
+        Parses the location from the BeautifulSoup object.
+        :return: str
+        """
+        return self.strategy.parse_location()
+
+    def parse_last_seen(self) -> str:
+        """
+        Parses the last seen date from the BeautifulSoup object.
+        :return: str
+        """
+        return self.strategy.parse_last_seen()
+
+    def data(self) -> dict:
+        """
+        Returns the data from the Fetch object.
+        :return: dict
+        """
+        return self.strategy.data()
+
+
+class Database:
+    """Defines the Database object."""
     instance = None
     ext = ".db"
 
@@ -131,8 +253,8 @@ class Database:
         if not name.endswith(self.ext):
             raise ValueError("{} must end with {}".format(name, self.ext))
         self.name = name
-        self.conn = sqlite3.connect(name)
-        self.cursor  = self.conn.cursor()
+        self.conn = sqlite3.connect(self.name)
+        self.cursor = self.conn.cursor()
         self.cursor.execute(sql)
         self.conn.commit()
 
@@ -142,6 +264,23 @@ class Database:
         :return: str
         """
         return self.name
+
+    def __enter__(self) -> 'Database':
+        """
+        Opens the connection to the database.
+        :return: Database
+        """
+        return self
+
+    def __exit__(self, exc_type: Exception, exc_val: Exception, exc_tb: Exception) -> None:
+        """
+        Closes the connection to the database.
+        :param exc_type: Exception
+        :param exc_val: Exception
+        :param exc_tb: Exception
+        :return:
+        """
+        self.conn.close()
 
     def insert(self, sql: str, data: dict) -> None:
         """
@@ -188,15 +327,21 @@ class Database:
 
 
 class App:
+    """Defines the App object"""
 
-    def __init__(self) -> None:
+    def __init__(self, delivery_service: str) -> None:
         """
         Constructor for the App object.
         """
         load_dotenv()
         self.sleep = 15 * 60
         self.seperator = "—"
-        self.database = Database(os.getenv("DB_NAME"), os.getenv("CREATE_TABLE"))
+        if re.match(r"^us", delivery_service, re.IGNORECASE):
+            self.delivery_service = USPS()
+        else:
+            raise ValueError("Delivery Service is not supported.")
+        with Database(os.getenv("DB_NAME"), os.getenv("CREATE_TABLE")) as db:
+            self.database = db
 
     def __str__(self) -> str:
         """
@@ -220,7 +365,7 @@ class App:
         :return: None
         """
         while True:
-            fetch = Fetch()
+            fetch = Fetch(self.delivery_service)
             data = fetch.data()
             print(f"Last Status for Tracking Number {data['tracking_number']} —> {data['status']}")
             print(f"{data['content']}")

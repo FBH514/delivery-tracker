@@ -1,18 +1,22 @@
 import './css/reset.css';
 import './css/Template.scss';
 import './css/Track.scss';
-import {QueryClient, QueryClientProvider} from "react-query";
-import Track from "./components/Track";
+import {useQuery} from "react-query";
+import Track, {TrackingProps} from "./components/Track";
 
-const client = new QueryClient();
+const TRACKING_ENDPOINT = "http://localhost:8001/tracking/v1/data"
+const TRACKING_QUERY_KEY = "TRACKING";
 
-function App() {
+function App(): JSX.Element {
 
-    return (
-        <QueryClientProvider client={client}>
-            <Track/>
-        </QueryClientProvider>
-    );
+    async function GET(endpoint: string): Promise<TrackingProps> {
+        const response = await fetch(endpoint);
+        return await response.json();
+    }
+
+    const {data} = useQuery<TrackingProps>(TRACKING_QUERY_KEY, () => GET(TRACKING_ENDPOINT));
+
+    return <Track data={data}/>
 }
 
 export default App;
