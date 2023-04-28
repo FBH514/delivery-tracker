@@ -278,7 +278,7 @@ class Database:
         :param exc_type: Exception
         :param exc_val: Exception
         :param exc_tb: Exception
-        :return:
+        :return: None
         """
         self.conn.close()
 
@@ -337,11 +337,10 @@ class App:
         self.sleep = 15 * 60
         self.seperator = "—"
         if re.match(r"^us", delivery_service, re.IGNORECASE):
-            self.delivery_service = USPS()
+            self.delivery_service = USPS
         else:
             raise ValueError("Delivery Service is not supported.")
-        with Database(os.getenv("DB_NAME"), os.getenv("CREATE_TABLE")) as db:
-            self.database = db
+        self.database = Database(os.getenv("DB_NAME"), os.getenv("CREATE_TABLE"))
 
     def __str__(self) -> str:
         """
@@ -359,18 +358,27 @@ class App:
         data.update({"date": datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M")})
         self.database.insert(os.getenv("INSERT_STATUS"), data)
 
+    @staticmethod
+    def console(data: dict) -> None:
+        """
+        Prints data to the console.
+        :param data: dict
+        :return: None
+        """
+        print(f"Last Status for Tracking Number {data['tracking_number']} —> {data['status']}")
+        print(f"{data['content']}")
+        print(f"{data['detail']}: {data['location']}")
+        print(f"Last Seen on {data['last_seen']}")
+
     async def run(self) -> None:
         """
         Runs the app.
         :return: None
         """
         while True:
-            fetch = Fetch(self.delivery_service)
+            fetch = Fetch(self.delivery_service())
             data = fetch.data()
-            print(f"Last Status for Tracking Number {data['tracking_number']} —> {data['status']}")
-            print(f"{data['content']}")
-            print(f"{data['detail']}: {data['location']}")
-            print(f"Last Seen on {data['last_seen']}")
+            self.console(data)
             message = f"Saving results.\nFetching new data in {int(self.sleep / 60)} minutes."
             self.save_data(data)
             print(self.seperator * len(message))
