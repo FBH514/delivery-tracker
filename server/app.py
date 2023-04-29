@@ -15,7 +15,7 @@ class FetchStrategy(ABC):
     """Defines the FetchStrategy interface."""
 
     @abstractmethod
-    def __init__(self) -> None:
+    def __init__(self, tracking_number: str) -> None:
         pass
 
     @abstractmethod
@@ -59,14 +59,16 @@ class FetchStrategy(ABC):
 class USPS(FetchStrategy):
     """Defines the USPS Object, implements FetchStrategy."""
 
-    def __init__(self) -> None:
+    def __init__(self, tracking_number) -> None:
         """
         Constructor for the Fetch Object.
         """
         load_dotenv()
-        self._tracking_number = os.getenv("TRACKING_NUMBER")
+        self._tracking_number = tracking_number
         self.BASE_URL = "https://tools.usps.com/go/TrackConfirmAction.action?tLabels="
         self.response = self.get(self._tracking_number)
+        if self.response.status_code != 200:
+            raise ValueError("{} returns a 404.".format(tracking_number))
         self.soup = BeautifulSoup(self.response.text, "html.parser")
 
     def __str__(self) -> str:
@@ -293,14 +295,18 @@ class Database:
             self.cursor.execute(sql, data)
         self.conn.commit()
 
-    def select(self, sql: str) -> list:
+    def select(self, sql: str, data: dict = None) -> list:
         """
         Selects from the database.
         :param sql: str
+        :param data: dict, default None
         :return: list
         """
         with self.conn:
-            self.cursor.execute(sql)
+            if not data:
+                self.cursor.execute(sql)
+            else:
+                self.cursor.execute(sql, data)
         return self.cursor.fetchall()
 
     def update(self, sql: str, data: dict) -> None:
@@ -329,17 +335,18 @@ class Database:
 class App:
     """Defines the App object"""
 
-    def __init__(self, delivery_service: str) -> None:
+    def __init__(self, delivery_service: str, tracking_number: str) -> None:
         """
         Constructor for the App object.
         """
         load_dotenv()
-        self.sleep = 15 * 60
-        self.seperator = "—"
         if re.match(r"^us", delivery_service, re.IGNORECASE):
             self.delivery_service = USPS
         else:
             raise ValueError("Delivery Service is not supported.")
+        self.tracking_number = tracking_number
+        self.sleep = 15 * 60
+        self.seperator = "—"
         self.database = Database(os.getenv("DB_NAME"), os.getenv("CREATE_TABLE"))
 
     def __str__(self) -> str:
@@ -356,7 +363,20 @@ class App:
         :return: None
         """
         data.update({"date": datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M")})
-        self.database.insert(os.getenv("INSERT_STATUS"), data)
+        row = self.database.select(
+            """SELECT * FROM deliveries WHERE tracking_number = :tracking_number""", {
+                "tracking_number": data["tracking_number"]
+            })[0]
+        if not row:
+            self.database.insert(os.getenv("INSERT_STATUS"), data)
+            return
+        self.database.update(
+            """
+            UPDATE deliveries
+            SET status = :status, content = :content, detail = :detail, location = :location, last_seen = :last_seen, date = :date WHERE tracking_number = :tracking_number
+            """,
+            data
+        )
 
     @staticmethod
     def console(data: dict) -> None:
@@ -376,7 +396,7 @@ class App:
         :return: None
         """
         while True:
-            fetch = Fetch(self.delivery_service())
+            fetch = Fetch(self.delivery_service(self.tracking_number))
             data = fetch.data()
             self.console(data)
             message = f"Saving results.\nFetching new data in {int(self.sleep / 60)} minutes."
