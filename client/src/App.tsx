@@ -1,6 +1,6 @@
 import './main.css';
 import Item, {TrackingProps} from "./components/Item.tsx";
-import {FormEvent, useEffect, useMemo, useRef, useState} from "react";
+import {FormEvent, useCallback, useEffect, useMemo, useRef, useState} from "react";
 import Socials from "./components/Socials.tsx";
 import Button from "./components/Button.tsx";
 import Input from "./components/Input.tsx";
@@ -17,6 +17,7 @@ const headerClasses = {
 
 
 const ICON_SIZE = 32;
+
 enum iconColors {DARK = "000000", LIGHT = "ffffff"}
 
 enum icons {
@@ -25,6 +26,7 @@ enum icons {
 }
 
 enum courriers {USPS = "usps"}
+
 enum endpoints {
     POST_RUN_ENDPOINT = "http://localhost:8001/tracking/v1/run",
     GET_TRACKING_ENDPOINT = "http://localhost:8001/tracking/v1/data/usps/"
@@ -86,7 +88,8 @@ export default function App(): JSX.Element {
             const data = await response.json();
             setTrackingData(data);
         }
-        GET(`${endpoints.GET_TRACKING_ENDPOINT}${trackingNumber}`).then(r => console.log(r));
+
+        GET(`${endpoints.GET_TRACKING_ENDPOINT}${trackingNumber}`);
     }, [trackingNumber])
 
     async function POST(endpoint: string, deliveryService: string, trackingNumber: string): Promise<void> {
@@ -132,7 +135,7 @@ export default function App(): JSX.Element {
         setShowHeader(!showHeader);
     }
 
-    async function handleSubmit(e: FormEvent<HTMLButtonElement>): Promise<void> {
+    const handleSubmit = useCallback(async (e: FormEvent<HTMLButtonElement>): Promise<void> => {
         e.preventDefault();
         const input = inputRef.current?.value;
         if (!input) {
@@ -142,7 +145,7 @@ export default function App(): JSX.Element {
         window.localStorage.setItem("TRACKING_NUMBER", JSON.stringify(input));
         await POST(endpoints.POST_RUN_ENDPOINT, courriers.USPS, input);
         setShowHeader(!showHeader);
-    }
+    }, [inputRef, setTrackingNumber, setShowHeader, showHeader]);
 
     return (
         <div
