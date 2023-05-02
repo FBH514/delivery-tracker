@@ -89,7 +89,7 @@ export default function App(): JSX.Element {
         GET(`${endpoints.GET_TRACKING_ENDPOINT}${trackingNumber}`).then(r => console.log(r));
     }, [trackingNumber])
 
-    async function POST(endpoint: string, deliveryService: string, trackingNumber: string): Promise<any> {
+    async function POST(endpoint: string, deliveryService: string, trackingNumber: string): Promise<void> {
         fetch(endpoint, {
             method: "POST",
             headers: {
@@ -121,9 +121,11 @@ export default function App(): JSX.Element {
         setTime(updatedDate["time"]);
     }, delays.TIME);
 
-    setInterval(async () => {
-        await POST(endpoints.POST_RUN_ENDPOINT, courriers.USPS, trackingNumber);
-    }, delays.REFETCH);
+    useEffect(() => {
+        setInterval(() => {
+            POST(endpoints.POST_RUN_ENDPOINT, courriers.USPS, trackingNumber);
+        }, delays.REFETCH);
+    }, [trackingNumber]);
 
     function handleHideHeader(): void {
         window.localStorage.removeItem("BANNER");

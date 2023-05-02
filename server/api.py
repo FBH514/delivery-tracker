@@ -1,10 +1,11 @@
-import asyncio
 import os
 import functools
 import subprocess
 
 from dotenv import load_dotenv
-from fastapi import FastAPI, BackgroundTasks
+
+# import fastapi from virtual environment
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.responses import Response
 from starlette.requests import Request
