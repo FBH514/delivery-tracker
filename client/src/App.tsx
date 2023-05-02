@@ -35,7 +35,6 @@ enum delays {
     REFETCH = 1000 * 60 // 1 minute
 }
 
-
 export default function App(): JSX.Element {
 
     const cached = window.localStorage.getItem("TRACKING_NUMBER");
@@ -87,7 +86,6 @@ export default function App(): JSX.Element {
             const data = await response.json();
             setTrackingData(data);
         }
-
         GET(`${endpoints.GET_TRACKING_ENDPOINT}${trackingNumber}`).then(r => console.log(r));
     }, [trackingNumber])
 
@@ -123,8 +121,8 @@ export default function App(): JSX.Element {
         setTime(updatedDate["time"]);
     }, delays.TIME);
 
-    setInterval(() => {
-        POST(endpoints.POST_RUN_ENDPOINT, courriers.USPS, trackingNumber);
+    setInterval(async () => {
+        await POST(endpoints.POST_RUN_ENDPOINT, courriers.USPS, trackingNumber);
     }, delays.REFETCH);
 
     function handleHideHeader(): void {
