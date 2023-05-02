@@ -1,3 +1,4 @@
+import asyncio
 import os
 import functools
 import subprocess
@@ -48,7 +49,7 @@ def cache(minutes: int) -> callable:
     return decorator
 
 
-@app.post(f"/{Project.NAME}/{Project.VERSION}/run")
+@app.post(f"/{Project.NAME}/{Project.VERSION}/run/")
 async def start_service(request: Request) -> None:
     """
     Starts the tracking number's service.
@@ -59,7 +60,8 @@ async def start_service(request: Request) -> None:
     number = data.get("trackingNumber")
     if not service and not number:
         raise ValueError("Invalid Service {} or Number {}".format(service, number))
-    subprocess.run(["python3", "main.py", f"{service}", f"{number}"])
+    process = await asyncio.create_subprocess_exec("python3", "main.py", f"{service}", f"{number}")
+    await process.wait()
 
 
 @cache(15)

@@ -1,7 +1,6 @@
 import './main.css';
 import Item, {TrackingProps} from "./components/Item.tsx";
-import {useQuery} from "react-query";
-import {useEffect, useMemo, useRef, useState} from "react";
+import {FormEvent, useEffect, useMemo, useRef, useState} from "react";
 import Socials from "./components/Socials.tsx";
 import Button from "./components/Button.tsx";
 import Input from "./components/Input.tsx";
@@ -12,11 +11,12 @@ export interface DateProps {
 }
 
 const headerClasses = {
-    active: "w-10/12 h-full grid grid-cols-2 items-center justify-items-center gap-4 md:flex md:flex-col md:w-full",
-    inactive: "w-10/12 h-full flex items-center justify-items-center"
+    active: "w-10/12 h-50 grid grid-cols-3 items-center justify-items-center gap-4 md:flex md:flex-col md:w-full",
+    inactive: "w-10/12 h-50 grid grid-cols-1 items-center justify-items-center"
 }
 
 const ICON_SIZE = 32;
+
 enum iconColors {
     DARK = "000000",
     LIGHT = "ffffff"
@@ -32,13 +32,6 @@ enum endpoints {
     GET_TRACKING_ENDPOINT = "http://localhost:8001/tracking/v1/data/usps/"
 }
 
-enum supportedCouriers {
-    USPS = "USPS"
-}
-
-const GET_TRACKING_QUERY_KEY = "TRACKING";
-const CACHE = {cacheTime: 0, staleTime: 0, refetchOnWindowFocus: false}
-
 export default function App(): JSX.Element {
 
     const cached = window.localStorage.getItem("TRACKING_NUMBER");
@@ -46,6 +39,7 @@ export default function App(): JSX.Element {
     const [time, setTime] = useState<string>("What time is it?");
     const [showHeader, setShowHeader] = useState<boolean>(true);
     const [trackingNumber, setTrackingNumber] = useState<string>(cached ? JSON.parse(cached) : "Loading");
+    const [trackingData, setTrackingData] = useState<TrackingProps>();
     const inputRef = useRef<HTMLInputElement>(null);
 
     useMemo(async () => {
@@ -81,27 +75,30 @@ export default function App(): JSX.Element {
         }
     })
 
-    async function GET(endpoint: string): Promise<TrackingProps | undefined> {
-        const response = await fetch(endpoint);
-        return await response.json();
-    }
+    useEffect(() => {
+        async function GET(endpoint: string): Promise<void> {
+            const response = await fetch(endpoint);
+            const data = await response.json();
+            setTrackingData(data);
+        }
 
-    async function POST(endpoint: string, deliveryService: string, trackingNumber: string): Promise<any> {
-        fetch(endpoint, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-                deliveryService: deliveryService,
-                trackingNumber: trackingNumber
-            })
-        }).then(response => {
-            if (response.ok) return response.json()
-        }).catch(error => console.log(error))
-    }
+        GET(`${endpoints.GET_TRACKING_ENDPOINT}${trackingNumber}`)
+    }, [trackingNumber])
 
-    const {data} = useQuery<TrackingProps | undefined>(GET_TRACKING_QUERY_KEY, () => GET(`${endpoints.GET_TRACKING_ENDPOINT}${trackingNumber}`), CACHE);
+    // async function POST(endpoint: string, deliveryService: string, trackingNumber: string): Promise<any> {
+    //     fetch(endpoint, {
+    //         method: "POST",
+    //         headers: {
+    //             "Content-Type": "application/json"
+    //         },
+    //         body: JSON.stringify({
+    //             deliveryService: deliveryService,
+    //             trackingNumber: trackingNumber
+    //         })
+    //     }).then(response => {
+    //         if (response.ok) return response.json()
+    //     }).catch(error => console.log(error))
+    // }
 
     function getDate(): DateProps {
         const date = new Date();
@@ -125,7 +122,8 @@ export default function App(): JSX.Element {
         setShowHeader(!showHeader);
     }
 
-    async function handleSubmit(): Promise<void> {
+    async function handleSubmit(e: FormEvent<HTMLButtonElement>): Promise<void> {
+        e.preventDefault();
         const input = inputRef.current?.value;
         if (!input) return;
         setTrackingNumber(input);
@@ -140,19 +138,20 @@ export default function App(): JSX.Element {
         >
             {showHeader ?
                 (<div className={showHeader ? headerClasses.active : headerClasses.inactive}
-                      style={{gridTemplateColumns: "4fr 2fr auto"}}>
+                      style={showHeader ? {gridTemplateColumns: "4fr 2fr auto"} : {gridTemplateColumns: "1fr"}}>
                         <Input params={{placeholder: "Enter a tracking number", ref: inputRef}}/>
                         <Button params={{value: "Submit", onClick: handleSubmit}}/>
                         <Button params={{icon: icons.CLOSE, onClick: () => setShowHeader(!showHeader)}}/>
                     </div>
                 ) : (
                     <div>
-                        <Button params={{icon: icons.EXPAND, onClick: handleHideHeader}} className={
-                            "py-2 px-4 bg-transparent w-auto hover:bg-black hover:bg-opacity-10 active:shadow-md rounded-md"
+                        <Button params={{
+                            icon: icons.EXPAND, onClick: handleHideHeader, iconStyles: showHeader ? "hidden" : "block"}} className={
+                            "py-2 px-4 bg-transparent w-auto hover:bg-black hover:bg-opacity-10 active:shadow-md rounded-md border border-1 border-black border-opacity-0 h-50"
                         }/>
                     </div>
                 )}
-            <Item params={data} date={{date: date, time: time}}/>
+            <Item params={trackingData} date={{date: date, time: time}}/>
             <Socials/>
         </div>
     );

@@ -18,6 +18,9 @@ export default {
             fontfamily: {
                 sans: ['Oxygen', 'sans-serif'],
                 mono: ['Oxygen Mono', 'monospace']
+            },
+            spacing: {
+                '50': '50px'
             }
         },
     },
