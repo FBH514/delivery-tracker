@@ -2,7 +2,6 @@ import datetime
 import os
 import re
 import sqlite3
-import asyncio
 
 from dotenv import load_dotenv
 import requests
@@ -389,7 +388,7 @@ class App:
         print(f"{data['detail']}: {data['location']}")
         print(f"Last Seen on {data['last_seen']}")
 
-    async def run(self) -> None:
+    def run(self) -> None:
         """
         Runs the app.
         :return: None

@@ -11,23 +11,30 @@ export interface DateProps {
 }
 
 const headerClasses = {
-    active: "w-10/12 h-50 grid grid-cols-3 items-center justify-items-center gap-4 md:flex md:flex-col md:w-full",
-    inactive: "w-10/12 h-50 grid grid-cols-1 items-center justify-items-center"
+    active: "w-10/12 h-50 md:h-full grid grid-cols-3 items-center justify-items-center gap-4 md:flex md:flex-col md:w-full",
+    inactive: "w-10/12 h-50 grid grid-cols-1 items-center justify-items-center md:flex md:flex-col md:w-full gap-4"
 }
+
 
 const ICON_SIZE = 32;
 enum iconColors {DARK = "000000", LIGHT = "ffffff"}
+
 enum icons {
     CLOSE = `https://img.icons8.com/ios/${ICON_SIZE}/${iconColors.LIGHT}/delete-sign--v1.png`,
     EXPAND = `https://img.icons8.com/ios/${ICON_SIZE}/${iconColors.DARK}/expand-arrow--v2.png`
 }
 
+enum courriers {USPS = "usps"}
 enum endpoints {
     POST_RUN_ENDPOINT = "http://localhost:8001/tracking/v1/run",
     GET_TRACKING_ENDPOINT = "http://localhost:8001/tracking/v1/data/usps/"
 }
 
-enum courriers {USPS = "usps"}
+enum delays {
+    TIME = 1000,
+    REFETCH = 1000 * 60 // 1 minute
+}
+
 
 export default function App(): JSX.Element {
 
@@ -39,15 +46,15 @@ export default function App(): JSX.Element {
     const [trackingData, setTrackingData] = useState<TrackingProps>();
     const inputRef = useRef<HTMLInputElement>(null);
 
-    useMemo(async () => {
+    useMemo(() => {
         const tracking_number = window.localStorage.getItem("TRACKING_NUMBER");
         if (tracking_number !== null) {
             setTrackingNumber(JSON.parse(tracking_number));
-            await POST(endpoints.POST_RUN_ENDPOINT, courriers.USPS, JSON.parse(tracking_number));
+            POST(endpoints.POST_RUN_ENDPOINT, courriers.USPS, JSON.parse(tracking_number));
         }
         const banner = window.localStorage.getItem("BANNER");
         if (banner !== null) setShowHeader(JSON.parse(banner));
-    }, []).then(r => console.log(r))
+    }, []);
 
     useMemo(() => {
         window.localStorage.setItem("BANNER", JSON.stringify(showHeader));
@@ -73,14 +80,15 @@ export default function App(): JSX.Element {
         }
     })
 
+    // GET
     useEffect(() => {
         async function GET(endpoint: string): Promise<void> {
             const response = await fetch(endpoint);
             const data = await response.json();
             setTrackingData(data);
         }
+
         GET(`${endpoints.GET_TRACKING_ENDPOINT}${trackingNumber}`).then(r => console.log(r));
-        // POST(endpoints.POST_RUN_ENDPOINT, courriers.USPS, trackingNumber).then(r => console.log(r));
     }, [trackingNumber])
 
     async function POST(endpoint: string, deliveryService: string, trackingNumber: string): Promise<any> {
@@ -113,11 +121,11 @@ export default function App(): JSX.Element {
         const updatedDate = getDate();
         setDate(updatedDate["date"]);
         setTime(updatedDate["time"]);
-    }, 1000);
+    }, delays.TIME);
 
-    setInterval(async () => {
-        await POST(endpoints.POST_RUN_ENDPOINT, courriers.USPS, trackingNumber);
-    }, 1000 * 60) // 1 minute
+    setInterval(() => {
+        POST(endpoints.POST_RUN_ENDPOINT, courriers.USPS, trackingNumber);
+    }, delays.REFETCH);
 
     function handleHideHeader(): void {
         window.localStorage.removeItem("BANNER");
@@ -151,7 +159,8 @@ export default function App(): JSX.Element {
                 ) : (
                     <div>
                         <Button params={{
-                            icon: icons.EXPAND, onClick: handleHideHeader, iconStyles: showHeader ? "hidden" : "block"}} className={
+                            icon: icons.EXPAND, onClick: handleHideHeader, iconStyles: showHeader ? "hidden" : "block"
+                        }} className={
                             "py-2 px-4 bg-transparent w-auto hover:bg-black hover:bg-opacity-10 active:shadow-md rounded-md border border-1 border-black border-opacity-0 h-50"
                         }/>
                     </div>
