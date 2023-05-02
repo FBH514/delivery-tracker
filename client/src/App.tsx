@@ -16,12 +16,7 @@ const headerClasses = {
 }
 
 const ICON_SIZE = 32;
-
-enum iconColors {
-    DARK = "000000",
-    LIGHT = "ffffff"
-}
-
+enum iconColors {DARK = "000000", LIGHT = "ffffff"}
 enum icons {
     CLOSE = `https://img.icons8.com/ios/${ICON_SIZE}/${iconColors.LIGHT}/delete-sign--v1.png`,
     EXPAND = `https://img.icons8.com/ios/${ICON_SIZE}/${iconColors.DARK}/expand-arrow--v2.png`
@@ -31,6 +26,8 @@ enum endpoints {
     POST_RUN_ENDPOINT = "http://localhost:8001/tracking/v1/run",
     GET_TRACKING_ENDPOINT = "http://localhost:8001/tracking/v1/data/usps/"
 }
+
+enum courriers {USPS = "usps"}
 
 export default function App(): JSX.Element {
 
@@ -46,10 +43,11 @@ export default function App(): JSX.Element {
         const tracking_number = window.localStorage.getItem("TRACKING_NUMBER");
         if (tracking_number !== null) {
             setTrackingNumber(JSON.parse(tracking_number));
+            await POST(endpoints.POST_RUN_ENDPOINT, courriers.USPS, JSON.parse(tracking_number));
         }
         const banner = window.localStorage.getItem("BANNER");
         if (banner !== null) setShowHeader(JSON.parse(banner));
-    }, [])
+    }, []).then(r => console.log(r))
 
     useMemo(() => {
         window.localStorage.setItem("BANNER", JSON.stringify(showHeader));
@@ -81,24 +79,24 @@ export default function App(): JSX.Element {
             const data = await response.json();
             setTrackingData(data);
         }
-
-        GET(`${endpoints.GET_TRACKING_ENDPOINT}${trackingNumber}`)
+        GET(`${endpoints.GET_TRACKING_ENDPOINT}${trackingNumber}`).then(r => console.log(r));
+        // POST(endpoints.POST_RUN_ENDPOINT, courriers.USPS, trackingNumber).then(r => console.log(r));
     }, [trackingNumber])
 
-    // async function POST(endpoint: string, deliveryService: string, trackingNumber: string): Promise<any> {
-    //     fetch(endpoint, {
-    //         method: "POST",
-    //         headers: {
-    //             "Content-Type": "application/json"
-    //         },
-    //         body: JSON.stringify({
-    //             deliveryService: deliveryService,
-    //             trackingNumber: trackingNumber
-    //         })
-    //     }).then(response => {
-    //         if (response.ok) return response.json()
-    //     }).catch(error => console.log(error))
-    // }
+    async function POST(endpoint: string, deliveryService: string, trackingNumber: string): Promise<any> {
+        fetch(endpoint, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                deliveryService: deliveryService,
+                trackingNumber: trackingNumber
+            })
+        }).then(response => {
+            if (response.ok) return response.json()
+        }).catch(error => console.log(error))
+    }
 
     function getDate(): DateProps {
         const date = new Date();
@@ -117,6 +115,10 @@ export default function App(): JSX.Element {
         setTime(updatedDate["time"]);
     }, 1000);
 
+    setInterval(async () => {
+        await POST(endpoints.POST_RUN_ENDPOINT, courriers.USPS, trackingNumber);
+    }, 1000 * 60) // 1 minute
+
     function handleHideHeader(): void {
         window.localStorage.removeItem("BANNER");
         setShowHeader(!showHeader);
@@ -125,9 +127,12 @@ export default function App(): JSX.Element {
     async function handleSubmit(e: FormEvent<HTMLButtonElement>): Promise<void> {
         e.preventDefault();
         const input = inputRef.current?.value;
-        if (!input) return;
+        if (!input) {
+            return;
+        }
         setTrackingNumber(input);
         window.localStorage.setItem("TRACKING_NUMBER", JSON.stringify(input));
+        await POST(endpoints.POST_RUN_ENDPOINT, courriers.USPS, input);
         setShowHeader(!showHeader);
     }
 

@@ -4,7 +4,7 @@ import functools
 import subprocess
 
 from dotenv import load_dotenv
-from fastapi import FastAPI
+from fastapi import FastAPI, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.responses import Response
 from starlette.requests import Request
@@ -48,20 +48,31 @@ def cache(minutes: int) -> callable:
         return wrapper
     return decorator
 
+def run_service(service: str, number: str) -> None:
+    """
+    Runs the tracking number's service.
+    :param service: str
+    :param number: str
+    :return: None
+    """
+    subprocess.run(["python3", "main.py", service, number])
+
 
 @app.post(f"/{Project.NAME}/{Project.VERSION}/run/")
-async def start_service(request: Request) -> None:
+async def start_service(request: Request) -> dict:
     """
     Starts the tracking number's service.
     :return: None
     """
     data = await request.json()
-    service = data.get("deliveryService")
-    number = data.get("trackingNumber")
-    if not service and not number:
-        raise ValueError("Invalid Service {} or Number {}".format(service, number))
-    process = await asyncio.create_subprocess_exec("python3", "main.py", f"{service}", f"{number}")
-    await process.wait()
+    service, number = data.get("deliveryService"), data.get("trackingNumber")
+    if number == "Loading".casefold(): return {"status": "error"}
+    with Database(Queries.DB_NAME, Queries.CREATE_TABLE) as db:
+        numbers = db.select(Queries.SELECT_DELIVERIES)[0]
+        if not number in numbers: return {"status": "error"}
+    print("Starting service: {} with number: {}".format(service, number))
+    run_service(service, number)
+    return {"status": "{} was started successfully".format(number)}
 
 
 @cache(15)
@@ -73,8 +84,6 @@ async def get_data(response: Response, tracking_number: str) -> dict:
     :param tracking_number: str
     :return: dict
     """
-    if not len(tracking_number) == 13:
-        return {}
     with Database(
             Queries.DB_NAME,
             Queries.CREATE_TABLE

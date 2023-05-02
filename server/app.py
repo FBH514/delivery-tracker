@@ -345,7 +345,6 @@ class App:
         else:
             raise ValueError("Delivery Service is not supported.")
         self.tracking_number = tracking_number
-        self.sleep = 15 * 60
         self.seperator = "—"
         self.database = Database(os.getenv("DB_NAME"), os.getenv("CREATE_TABLE"))
 
@@ -395,13 +394,11 @@ class App:
         Runs the app.
         :return: None
         """
-        while True:
-            fetch = Fetch(self.delivery_service(self.tracking_number))
-            data = fetch.data()
-            self.console(data)
-            message = f"Saving results.\nFetching new data in {int(self.sleep / 60)} minutes."
-            self.save_data(data)
-            print(self.seperator * len(message))
-            print(message)
-            print()
-            await asyncio.sleep(self.sleep)
+        fetch = Fetch(self.delivery_service(self.tracking_number))
+        data = fetch.data()
+        self.console(data)
+        message = "Saving results."
+        self.save_data(data)
+        print(self.seperator * len(message))
+        print(message)
+        print()
